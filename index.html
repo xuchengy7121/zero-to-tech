@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+	<meta charset="UTF-8" />
+	<!-- 让页面在手机上也能正常显示（视口适配） -->
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>我的待办清单</title>
+
+	<!-- ============================================================
+       样式部分（CSS）：写在 style 标签里，控制页面长什么样
+       ============================================================ -->
+	<style>
+		/* ---------- 全局基础样式 ---------- */
+		/* * 表示"所有元素"，box-sizing 让 padding 和 border 算在宽度内，
+       这样设置宽度时不会被内边距撑破 */
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+			/* 一个从左上到右下的渐变背景，现代页面常用 */
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			/* 让页面内容垂直水平居中 */
+			min-height: 100vh;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			/* 默认字体，中文优先用系统字体 */
+			font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+			padding: 20px;
+		}
+
+		/* ---------- 中间的卡片容器 ---------- */
+		.card {
+			background: #ffffff;
+			border-radius: 16px;
+			/* 阴影：水平偏移 垂直偏移 模糊半径 颜色 */
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+			/* 卡片最大宽度，超过会换行，保证手机上不溢出 */
+			max-width: 420px;
+			width: 100%;
+			padding: 30px;
+		}
+
+		/* 标题样式 */
+		.card h1 {
+			font-size: 24px;
+			color: #333;
+			margin-bottom: 8px;
+		}
+
+		/* 副标题（小字说明） */
+		.card .subtitle {
+			font-size: 13px;
+			color: #999;
+			margin-bottom: 20px;
+		}
+
+		/* ---------- 输入区域：输入框 + 添加按钮 ---------- */
+		.input-area {
+			display: flex;
+			/* 横向排列 */
+			gap: 8px;
+			/* 元素之间的间距 */
+			margin-bottom: 20px;
+		}
+
+		.input-area input {
+			flex: 1;
+			/* 输入框占满剩余空间 */
+			padding: 10px 14px;
+			border: 2px solid #e0e0e0;
+			border-radius: 8px;
+			font-size: 14px;
+			outline: none;
+			/* 去掉默认的聚焦边框 */
+			transition: border-color 0.2s;
+			/* 边框颜色变化时平滑过渡 */
+		}
+
+		/* 聚焦（点击输入框）时的样式 */
+		.input-area input:focus {
+			border-color: #667eea;
+		}
+
+		.input-area button {
+			padding: 10px 18px;
+			border: none;
+			border-radius: 8px;
+			background: #667eea;
+			color: #fff;
+			font-size: 14px;
+			cursor: pointer;
+			/* 鼠标变成小手 */
+			transition: background 0.2s;
+		}
+
+		/* 鼠标悬停在按钮上时颜色变深 */
+		.input-area button:hover {
+			background: #5568d8;
+		}
+
+		/* ---------- 任务列表 ---------- */
+		.list {
+			list-style: none;
+			/* 去掉列表默认的圆点 */
+		}
+
+		/* 每一条任务 */
+		.list li {
+			display: flex;
+			/* 复选框 + 文字 + 删除按钮 横向排列 */
+			align-items: center;
+			gap: 10px;
+			padding: 12px 0;
+			border-bottom: 1px solid #f0f0f0;
+			/* 分隔线 */
+		}
+
+		/* 去掉最后一条的分隔线，更整洁 */
+		.list li:last-child {
+			border-bottom: none;
+		}
+
+		/* 任务文字 */
+		.list li span {
+			flex: 1;
+			/* 文字占满剩余空间，把删除按钮挤到右边 */
+			font-size: 15px;
+			color: #333;
+			word-break: break-all;
+			/* 长文字自动换行 */
+		}
+
+		/* 任务完成时的样式：文字变灰 + 删除线 */
+		.list li span.done {
+			color: #bbb;
+			text-decoration: line-through;
+		}
+
+		/* 删除按钮（小小的 × ） */
+		.list li button {
+			background: none;
+			border: none;
+			color: #ccc;
+			font-size: 18px;
+			cursor: pointer;
+			padding: 4px 8px;
+			border-radius: 6px;
+			transition: all 0.2s;
+		}
+
+		.list li button:hover {
+			color: #ff6b6b;
+			/* 悬停变红 */
+			background: #fff0f0;
+		}
+
+		/* 空状态提示（没有任务时显示） */
+		.empty {
+			text-align: center;
+			color: #ccc;
+			font-size: 14px;
+			padding: 30px 0;
+		}
+
+		/* ---------- 底部统计 ---------- */
+		.footer {
+			margin-top: 20px;
+			text-align: right;
+			font-size: 13px;
+			color: #999;
+		}
+	</style>
+</head>
+
+<body>
+	<!-- ============================================================
+       结构部分（HTML）：定义页面里有什么内容
+       ============================================================ -->
+	<div class="card">
+		<h1>📝 我的待办清单</h1>
+		<p class="subtitle">输入任务，回车或点按钮添加</p>
+
+		<!-- 输入区：一个输入框 + 一个添加按钮 -->
+		<div class="input-area">
+			<input id="taskInput" type="text" placeholder="今天要做点什么？" />
+			<button id="addBtn">添加</button>
+		</div>
+
+		<!-- 任务列表：由 JavaScript 动态生成内容 -->
+		<ul id="taskList" class="list"></ul>
+
+		<!-- 底部统计：剩余任务数量 -->
+		<div class="footer">
+			还剩 <span id="remainCount">0</span> 项未完成
+		</div>
+	</div>
+
+	<!-- ============================================================
+       交互部分（JavaScript）：写在 script 标签里，负责"动起来"
+       注意：脚本放在 body 最后面，确保上面的元素先加载完
+       ============================================================ -->
+	<script>
+		// ---------- 1. 拿到页面上的元素（DOM 操作） ----------
+		// 通过 id 找到对应的 HTML 元素，后面才能操作它们
+		const input = document.getElementById("taskInput") // 输入框
+		const addBtn = document.getElementById("addBtn") // 添加按钮
+		const list = document.getElementById("taskList") // 任务列表 <ul>
+		const remain = document.getElementById("remainCount") // 剩余数量显示
+
+		// ---------- 2. 数据存储 ----------
+		// tasks 数组保存所有任务，每个任务是一个对象：
+		//   { id: 唯一编号, text: 任务文字, done: 是否完成 }
+		// 页面刷新后从 localStorage 恢复，实现"记忆"功能
+		let tasks = loadTasks()
+
+		/**
+		 * 从 localStorage 读取之前保存的任务
+		 * localStorage 是浏览器自带的小型存储，key-value 形式
+		 * 数据以 JSON 字符串保存，所以要 parse 解析回数组
+		 * 读取失败（比如没有数据）就返回空数组
+		 */
+		function loadTasks() {
+			try {
+				const data = localStorage.getItem("myTasks")
+				return data ? JSON.parse(data) : []
+			} catch (e) {
+				return []
+			}
+		}
+
+		/**
+		 * 把当前任务数组保存到 localStorage
+		 * JSON.stringify 把数组转成字符串才能存储
+		 */
+		function saveTasks() {
+			localStorage.setItem("myTasks", JSON.stringify(tasks))
+		}
+
+		// ---------- 3. 渲染列表 ----------
+		/**
+		 * 把 tasks 数组渲染到页面上
+		 * 每次数据变化后都调用它，保证页面和数据显示一致
+		 */
+		function render() {
+			// 先清空列表，再重新生成（简单直接的方式）
+			list.innerHTML = ""
+
+			// 如果没有任何任务，显示空状态提示
+			if (tasks.length === 0) {
+				list.innerHTML =
+					'<li class="empty">还没有任务，添加一个吧～</li>'
+			}
+
+			// forEach 遍历数组中的每一个任务
+			tasks.forEach(function (task) {
+				// 用 document.createElement 创建 li 元素
+				const li = document.createElement("li")
+
+				// 复选框：勾选 = 标记完成
+				const checkbox = document.createElement("input")
+				checkbox.type = "checkbox"
+				checkbox.checked = task.done // 是否勾选来自数据
+				// 勾选/取消勾选时，切换该任务的完成状态
+				checkbox.addEventListener("change", function () {
+					task.done = checkbox.checked // 修改数据
+					saveTasks() // 保存
+					render() // 重新渲染
+				})
+
+				// 任务文字
+				const span = document.createElement("span")
+				span.textContent = task.text // textContent 防止 HTML 注入
+				if (task.done) span.className = "done" // 已完成加删除线样式
+
+				// 删除按钮
+				const delBtn = document.createElement("button")
+				delBtn.textContent = "✕"
+				delBtn.title = "删除"
+				delBtn.addEventListener("click", function () {
+					// filter：保留所有 id 不等于当前任务的项，即"删掉它"
+					tasks = tasks.filter(function (t) {
+						return t.id !== task.id
+					})
+					saveTasks()
+					render()
+				})
+
+				// 把三个子元素依次放进 li，再把 li 放进列表
+				li.appendChild(checkbox)
+				li.appendChild(span)
+				li.appendChild(delBtn)
+				list.appendChild(li)
+			})
+
+			// 统计并显示剩余未完成的数量
+			const remainCount = tasks.filter(function (t) {
+				return !t.done
+			}).length
+			remain.textContent = remainCount
+		}
+
+		// ---------- 4. 添加任务 ----------
+		/**
+		 * 读取输入框内容，加进任务数组并渲染
+		 * 输入为空时忽略，避免添加空白任务
+		 */
+		function addTask() {
+			const text = input.value.trim() // trim 去掉首尾空格
+			if (text === "") return // 空内容直接返回
+
+			// 把新任务 push 进数组；Date.now() 生成唯一编号
+			tasks.push({ id: Date.now(), text: text, done: false })
+			saveTasks()
+			render()
+
+			input.value = "" // 清空输入框
+			input.focus() // 让焦点回到输入框，方便连续输入
+		}
+
+		// ---------- 5. 绑定事件 ----------
+		// 点击"添加"按钮时执行 addTask
+		addBtn.addEventListener("click", addTask)
+
+		// 在输入框里按回车键时也执行 addTask（更顺手）
+		input.addEventListener("keydown", function (event) {
+			if (event.key === "Enter") addTask()
+		})
+
+		// ---------- 6. 页面打开时先渲染一次 ----------
+		render();
+	</script>
+</body>
+
+</html>
